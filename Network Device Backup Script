@@ -1,0 +1,46 @@
+from netmiko import ConnectHandler
+from datetime import datetime
+import os
+
+devices = [
+    {
+        "device_type": "cisco_ios",
+        "host": "192.168.1.1",
+        "username": "admin",
+        "password": "cisco123"
+    },
+    {
+        "device_type": "cisco_ios",
+        "host": "192.168.1.2",
+        "username": "admin",
+        "password": "cisco123"
+    }
+]
+
+backup_folder = "backups"
+os.makedirs(backup_folder, exist_ok=True)
+
+today = datetime.now().strftime("%Y-%m-%d")
+
+for device in devices:
+    ip = device["host"]
+
+    try:
+        print(f"Connecting to {ip}...")
+
+        connection = ConnectHandler(**device)
+
+        hostname = connection.find_prompt().replace("#", "").strip()
+        config = connection.send_command("show running-config")
+
+        filename = f"{backup_folder}/{hostname}_{today}.txt"
+
+        with open(filename, "w") as file:
+            file.write(config)
+
+        connection.disconnect()
+
+        print(f"Backup completed: {filename}")
+
+    except Exception as error:
+        print(f"Could not backup {ip}: {error}")
